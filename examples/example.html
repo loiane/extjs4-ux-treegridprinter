@@ -1,0 +1,210 @@
+<html>
+<head>
+    <title>Grid with GridPrinter feature</title>
+
+	<!-- Ext JS Files -->
+    <link rel="stylesheet" type="text/css" href="http://cdn.sencha.com/ext/gpl/4.2.1/resources/css/ext-all.css" />
+    <script type="text/javascript" src="http://cdn.sencha.com/ext/gpl/4.2.1/ext-all.js"></script>
+
+	<!-- Application Specific Files -->
+	<link rel="stylesheet" type="text/css" href="../resources/example.css" />
+
+	<script type="text/javascript">
+	Ext.Loader.setConfig({
+	    enabled: true,
+	    paths: {
+	        Ext: '.',
+	        'Ext.ux': '../ux'
+	    }
+	});
+
+	Ext.require([
+	    'Ext.grid.*',
+	    'Ext.data.*',
+	    'Ext.ux.tree.Printer',
+	]);
+
+	Ext.onReady(function() {
+
+	   //we want to setup a model and store instead of using dataUrl
+	    Ext.define('Task', {
+	        extend: 'Ext.data.Model',
+	        fields: [
+	            {name: 'task',     type: 'string'},
+	            {name: 'user',     type: 'string'},
+	            {name: 'duration', type: 'string'},
+	            {name: 'done',     type: 'boolean'}
+	        ]
+	    });
+
+	    var store = Ext.create('Ext.data.TreeStore', {
+	        model: 'Task',
+	        proxy: {
+	            type: 'ajax',
+	            //the store will get the content from the .json file
+	            url: 'treegrid.json'
+	        },
+	        folderSort: true
+	    });
+
+	     //Ext.ux.tree.TreeGrid is no longer a Ux. You can simply use a tree.TreePanel
+	    var tree = Ext.create('Ext.tree.Panel', {
+	        title: 'Core Team Projects',
+	        width: 600,
+	        height: 300,
+	        renderTo: Ext.getBody(),
+	        collapsible: true,
+	        useArrows: true,
+	        rootVisible: false,
+	        store: store,
+	        multiSelect: true,
+	        columns: [{
+	            xtype: 'treecolumn', //this is so we know which column will show the tree
+	            text: 'Task',
+	            width: 200,
+	            sortable: true,
+	            dataIndex: 'task'
+	        }, {
+	            //we must use the templateheader component so we can use a custom tpl
+	            xtype: 'templatecolumn',
+	            text: 'Duration',
+	            width: 150,
+	            sortable: true,
+	            dataIndex: 'duration',
+	            align: 'center',
+	            //add in the custom tpl for the rows
+	            tpl: Ext.create('Ext.XTemplate', '{duration:this.formatHours}', {
+	                formatHours: function(v) {
+	                    if (v < 1) {
+	                        return Math.round(v * 60) + ' mins';
+	                    } else if (Math.floor(v) !== v) {
+	                        var min = v - Math.floor(v);
+	                        return Math.floor(v) + 'h ' + Math.round(min * 60) + 'm';
+	                    } else {
+	                        return v + ' hour' + (v === 1 ? '' : 's');
+	                    }
+	                }
+	            })
+	        }, {
+	            text: 'Assigned To',
+	            width: 150,
+	            dataIndex: 'user',
+	            sortable: true
+	        }],
+	        tbar: [{
+	            text: 'Print',
+	            iconCls: 'icon-print',
+	            handler : function(){
+	            	Ext.ux.tree.Printer.printAutomatically = false;
+	            	Ext.ux.tree.Printer.print(tree);
+	            }
+	        }]
+	    });
+
+		//--------------Tree 2 ---------------------//
+		Ext.define('Post', {
+	        extend: 'Ext.data.Model',
+	        idProperty: 'postid',
+	        fields: [{
+	            name: "title",
+	            convert: undefined
+	        }, {
+	            name: "threadid",
+	            convert: undefined
+	        }, {
+	            name: "username",
+	            convert: undefined
+	        }, {
+	            name: "userid",
+	            convert: undefined
+	        },  {
+	            name: "dateline",
+	            type: 'date',
+	            dateFormat: 'timestamp'
+	        }, {
+	            name: "postid",
+	            convert: undefined
+	        }, {
+	            name: "forumtitle",
+	            convert: undefined
+	        }, {
+	            name: "forumid",
+	            convert: undefined
+	        }, {
+	            name: "replycount",
+	            type: 'int',
+	            convert: undefined
+	        }, {
+	            name: "lastpost",
+	            dateFormat: 'timestamp',
+	            convert: undefined
+	        }, {
+	            name: "excerpt",
+	            convert: undefined
+	        }]
+	    });
+
+	    function renderTitle(value, p, record) {
+	        return value ? Ext.String.format(
+	            '<a href="http://sencha.com/forum/showthread.php?t={1}" target="_blank">{0}</a>',
+	            value,
+	            record.data.threadid
+	        ) : '';
+	    }
+
+	    var store2 = Ext.create('Ext.data.TreeStore', {
+	        model: 'Post',
+	        proxy: {
+	            type: 'ajax',
+	            reader: 'json',
+	            url: 'forum-data.json'
+	        },
+	        lazyFill: true
+	    });
+
+	    var tree2 = Ext.create('Ext.tree.Panel', {
+	        title: 'Forum Folder Summary',
+	        width: 600,
+	        height: 400,
+	        renderTo: Ext.getBody(),
+	        collapsible: true,
+	        loadMask: true,
+	        useArrows: true,
+	        rootVisible: false,
+	        store: store2,
+	        animate: false,
+	        plugins: [{
+	            ptype: 'bufferedrenderer'
+	        }],
+	        columns: [{
+	            xtype: 'treecolumn', //this is so we know which column will show the tree
+	            text: 'Forum',
+	            flex: 2.5,
+	            sortable: true,
+	            dataIndex: 'forumtitle'
+	        },{
+	            text: 'User',
+	            flex: 1,
+	            dataIndex: 'username',
+	            sortable: true
+	        }, {
+	            text: 'Title',
+	            flex: 2,
+	            dataIndex: 'title',
+	            renderer: renderTitle
+	        }],
+	        tbar: [{
+	            text: 'Print',
+	            iconCls: 'icon-print',
+	            handler : function(){
+	            	Ext.ux.tree.Printer.printAutomatically = false;
+	            	Ext.ux.tree.Printer.print(tree2);
+	            }
+	        }]
+	    });
+	});
+	</script>
+</head>
+<body>
+</body>
+</html>
